@@ -1,11 +1,12 @@
 const Discord = require('discord.js');
 const config = require('./config');
 
-const twitter_api = require('./twitter_api');
+const TwitterApi = require('./twitter_api');
+const TwitterApiInstance = new TwitterApi();
 
 const client = new Discord.Client();
 
-const prefix = '!';
+const prefix = '.';
 
 client.on('ready', () => {
     console.log('> Bot is running...');
@@ -23,18 +24,38 @@ client.on('message', async (message) => {
         const timeTaken = Date.now() - message.createdTimestamp;
 
         message.reply(`Pong! This message had a latency of ${timeTaken}ms.`);
-
     } else if (command === 'sum') {
         const numArgs = args.map(x => parseFloat(x));
         const sum = numArgs.reduce((counter, x) => counter += x);
 
         message.reply(`The sum of all arguments you provided is ${sum}!`);
-
     } else if (command === 'tweet') {
         try {
-            let lastTweet = await twitter_api;
+            if (args.length !== 0) {
+                let tweet = await TwitterApiInstance.getTweet(args);
 
-            message.reply(`Hi ${lastTweet}`);
+                message.channel.send(`
+                    ${tweet.data.text}
+                `);
+            } else {
+                let lastTweetId = await TwitterApiInstance.getLastTweet();
+                let lastTweet = await TwitterApiInstance.getTweet(lastTweetId);
+
+                message.channel.send(lastTweet.data.text);
+            }
+        } catch (error) {
+            console.error(error);
+        }
+    } else if (command === 'last-tweets') {
+        try {
+            let lastTweets = await TwitterApiInstance.getTweets();
+            let tweetsIds = [];
+
+            lastTweets.data.forEach(element => {
+                tweetsIds.push(element.id);
+            });
+
+            message.channel.send(`Last tweets ${tweetsIds}`);
         } catch (error) {
             console.error(error);
         }
